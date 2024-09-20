@@ -6,6 +6,7 @@ mutable struct MyTrinomialLatticeNodeModel
     # data -
     price::Float64
     probability::Float64
+    path::Array{Char,1}
 
     # constructor -
     MyTrinomialLatticeNodeModel() = new();

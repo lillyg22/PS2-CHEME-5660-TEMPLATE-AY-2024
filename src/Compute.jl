@@ -23,9 +23,11 @@ function _𝕍(model::MyAdjacencyBasedTrinomialSharePriceTreeModel; level::Int =
         x_value = node.price;
         p_value = node.probability;
  
-        # store the data -
-        push!(X,x_value);
-        push!(p,p_value);
+        # store unique data -
+        if ((x_value ∈ X) == false && (p_value ∈ p) == false)
+            push!(X,x_value);
+            push!(p,p_value);
+        end
     end
 
     # update -
@@ -102,9 +104,11 @@ function _𝔼(model::MyAdjacencyBasedTrinomialSharePriceTreeModel; level::Int =
         x_value = node.price;
         p_value = node.probability;
 
-        # store the data -
-        push!(X,x_value);
-        push!(p,p_value);
+        # store only the unique values -
+        if ((x_value ∈ X) == false && (p_value ∈ p) == false)
+            push!(X,x_value);
+            push!(p,p_value);
+        end
     end
 
     # compute -
@@ -166,7 +170,7 @@ end
 Var(model::MyAdjacencyBasedTrinomialSharePriceTreeModel, levels::Array{Int64,1}; 
     startindex::Int64 = 0) = _𝕍(model, levels, startindex = startindex)
 
-expectation(model::MyAdjacencyBasedTrinomialSharePriceTreeModel, levels::Array{Int64,1}; 
+𝔼(model::MyAdjacencyBasedTrinomialSharePriceTreeModel, levels::Array{Int64,1}; 
     startindex::Int64 = 0) = _𝔼(model, levels, startindex = startindex)
 
 # Short-hand notation for lattice parameter computation -
@@ -197,6 +201,7 @@ function populate(model::MyAdjacencyBasedTrinomialSharePriceTreeModel;
     rootnode = MyTrinomialLatticeNodeModel();
     rootnode.price = Sₒ;
     rootnode.probability = 1.0;
+    rootnode.path = [];
     P[0] = rootnode; # set the price at the root of the tree
 
     # build connectivity -
@@ -204,6 +209,7 @@ function populate(model::MyAdjacencyBasedTrinomialSharePriceTreeModel;
         
         # what is the *parent* price
         Pᵢ = P[i].price;
+        path_parent = P[i].path;
 
         # Compute the children for this node -
         Cᵢ = [j for j ∈ (3*i+1):(3*i+3)]; 
@@ -212,6 +218,15 @@ function populate(model::MyAdjacencyBasedTrinomialSharePriceTreeModel;
         # cmpute the prices at the child nodes
         for c ∈ 1:3 # for each node (no matter what i) we have three children
 
+            my_path = copy(path_parent);
+            if (c == 1)
+                push!(my_path, 'a');
+            elseif (c == 2)
+                push!(my_path, 'b');
+            else (c == 3)
+                push!(my_path, 'c');
+            end
+        
             # build empty node model -
             node = MyTrinomialLatticeNodeModel();
 
@@ -221,20 +236,33 @@ function populate(model::MyAdjacencyBasedTrinomialSharePriceTreeModel;
             # to build a tree node, we need two things: the price and the probability
             node.price = Pᵢ*exp(Δ[c]*Δt);
             node.probability = 0.1; # placeholder
+            node.path = my_path;
 
             # compute the new price for the child node
             P[child_index] = node;
         end
     end
 
-    # compute the levels -
+    # for each node, compute the probability of seeing that node -
+    for (_ , v) ∈ P
 
+        patharray = v.path;
+        ntotal = length(patharray);
+
+        # compute the n up moves, n down moves, and n unchanged moves
+        n_up = count(x -> x == 'a', patharray);
+        n_unch = count(x -> x == 'b', patharray);
+        n_down = count(x -> x == 'c', patharray);
+
+        # compute the probability of seeing this path -
+        factor = (factorial(ntotal))/(factorial(n_up)*factorial(n_unch)*factorial(n_down));
+        v.probability = factor*(p^n_up)*(q^n_unch)*(p̄^n_down);
+    end
 
     # set the data, and connectivity for the model -
     model.data = P;
     model.connectivity = connectivity;
     model.levels = _build_nodes_level_dictionary(h);
-
 
     # return -
     return model;
