@@ -86,6 +86,24 @@ function log_growth_matrix(dataset::Dict{String, DataFrame},
     return return_matrix;
 end
 
+"""
+    function populate(model::MyAdjacencyBasedTrinomialSharePriceTreeModel; 
+        Sₒ::Float64 = 100.0, h::Int = 1) -> MyAdjacencyBasedTrinomialSharePriceTreeModel
+
+The `populate` function builds the trinomial share price tree for a given model. 
+The function takes as input the model, the initial price of the asset and the number of time steps (levels) in the tree.
+Each node in the tree is represented by a `MyTrinomialLatticeNodeModel` object that holds the price, probability, and path information.
+This reference implementation builds a full trinomial tree with the given number of levels. Thus, there are duplicates of the same price and probability information in the tree.
+
+
+### Arguments
+- `model::MyAdjacencyBasedTrinomialSharePriceTreeModel`: The model for which we want to build the trinomial share price tree.
+- `Sₒ::Float64`: The initial price of the asset. The default value is `100.0`.
+- `h::Int`: The number of time steps (levels) in the tree. The default value is `1`.
+
+### Returns
+- `MyAdjacencyBasedTrinomialSharePriceTreeModel`: The model with the trinomial share price tree populated.
+"""
 function populate(model::MyAdjacencyBasedTrinomialSharePriceTreeModel; 
     Sₒ::Float64 = 100.0, h::Int = 1)::MyAdjacencyBasedTrinomialSharePriceTreeModel
 
