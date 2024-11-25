@@ -26,8 +26,24 @@ function _analyze_real_world_ternary_single_asset(R::Array{Float64,1},
     u = Array{Float64,1}(); # up move factor array
     d = Array{Float64,1}(); # down move factor array
 
-    # TODO: implement the function body here
-    throw("TODO: implement the function body here for the _analyze_real_world_ternary_single_asset function");
+    # get indicies for the up and down moves -
+    i₊ = findall(x -> x > ϵ, R);
+    i₋ = findall(x -> x < -ϵ, R);
+    iₒ = findall(x -> abs(x) <= ϵ, R);
+
+    # compute the probabilities -
+    p = length(i₊)/N; # up
+    p̄ = length(i₋)/N; # down
+    q = length(iₒ)/N; # unch.
+
+    # compute the up and down move factors -
+    for i ∈ i₊
+        push!(u, exp(R[i]*Δt)); # up move factors
+    end
+
+    for i ∈ i₋
+        push!(d, exp(R[i]*Δt)); # down move factors
+    end
 
     # build parameter wrapper -
     parameters = MyRealWorldTrinomialSharePriceTreeParameters();
@@ -79,8 +95,20 @@ function log_growth_matrix(dataset::Dict{String, DataFrame},
     number_of_trading_days = nrow(dataset[testfirm]);
     return_matrix = Array{Float64,2}(undef, number_of_trading_days-1, number_of_firms);
 
-    # TODO: implement the function body here
-    throw("TODO: implement the function body here for the log_growth_matrix function");
+    # main loop -
+    for i ∈ eachindex(firms) 
+
+        # get the firm data -
+        firm_index = firms[i];
+        firm_data = dataset[firm_index];
+
+        # compute the log returns -
+        for j ∈ 2:number_of_trading_days
+            S₁ = firm_data[j-1, keycol];
+            S₂ = firm_data[j, keycol];
+            return_matrix[j-1, i] = (1/Δt)*(log(S₂/S₁)) - risk_free_rate;
+        end
+    end
 
     # return -
     return return_matrix;
